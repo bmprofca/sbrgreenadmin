@@ -1,20 +1,34 @@
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { adminApi } from "../api";
+import ConfirmModal from "../components/ConfirmModal";
+import PageMotion from "../components/PageMotion";
+import { TableSkeleton } from "../components/Skeleton";
 
 export default function CrudPage({ config }) {
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(config.empty);
   const [busy, setBusy] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const load = () =>
-    adminApi
-      .list(config.resource)
-      .then((res) => setItems(res.data))
-      .catch((err) => setError(err.message));
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await adminApi.list(config.resource);
+      setItems(res.data);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     setError("");
@@ -22,6 +36,7 @@ export default function CrudPage({ config }) {
     setOpen(false);
     setEditing(null);
     setForm(config.empty);
+    setDeleteId(null);
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.resource]);
@@ -68,28 +83,53 @@ export default function CrudPage({ config }) {
     }
   };
 
-  const onDelete = async (id) => {
-    if (!window.confirm("Delete this item?")) return;
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
     try {
-      await adminApi.remove(config.resource, id);
+      await adminApi.remove(config.resource, deleteId);
       setSuccess("Deleted successfully.");
-      load();
+      setDeleteId(null);
+      await load();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
+  if (loading) {
+    return (
+      <TableSkeleton
+        rows={6}
+        cols={config.columns.length + 2}
+        withImage={Boolean(config.imageKey)}
+      />
+    );
+  }
+
   return (
-    <>
+    <PageMotion>
       <div className="topbar">
         <h1>{config.title}</h1>
-        <button type="button" className="btn btn-primary" style={{ width: "auto" }} onClick={openCreate}>
+        <motion.button
+          type="button"
+          className="btn btn-primary"
+          style={{ width: "auto" }}
+          onClick={openCreate}
+          whileTap={{ scale: 0.97 }}
+        >
           Add New
-        </button>
+        </motion.button>
       </div>
       {error ? <div className="error-banner">{error}</div> : null}
       {success ? <div className="success-banner">{success}</div> : null}
-      <div className="card table-wrap">
+      <motion.div
+        className="card table-wrap"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
         {!items.length ? (
           <div className="empty">No records yet. Add the first one.</div>
         ) : (
@@ -105,11 +145,20 @@ export default function CrudPage({ config }) {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
+              {items.map((item, index) => (
+                <motion.tr
+                  key={item.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                >
                   {config.imageKey ? (
                     <td>
-                      <img className="thumb" src={item[config.imageKey] || item.image || item.src} alt="" />
+                      <img
+                        className="thumb"
+                        src={item[config.imageKey] || item.image || item.src}
+                        alt=""
+                      />
                     </td>
                   ) : null}
                   {config.columns.map((col) => (
@@ -125,92 +174,130 @@ export default function CrudPage({ config }) {
                     </span>
                   </td>
                   <td className="actions">
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEdit(item)}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => openEdit(item)}
+                    >
                       Edit
                     </button>
-                    <button type="button" className="btn btn-danger btn-sm" onClick={() => onDelete(item.id)}>
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm"
+                      onClick={() => setDeleteId(item.id)}
+                    >
                       Delete
                     </button>
                   </td>
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
+      </motion.div>
 
-      {open ? (
-        <div className="modal-backdrop" onClick={() => setOpen(false)}>
-          <form
-            className="modal form-grid"
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={onSubmit}
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            className="modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setOpen(false)}
           >
-            <h2>{editing ? `Edit ${config.title}` : `Add ${config.title}`}</h2>
-            {config.fields.map((field) => (
-              <div className="field" key={field.name}>
-                {field.type === "checkbox" ? (
-                  <label>
-                    <input
-                      type="checkbox"
-                      name={field.name}
-                      checked={Boolean(form[field.name])}
-                      onChange={onChange}
-                    />{" "}
-                    {field.label}
-                  </label>
-                ) : field.type === "textarea" ? (
-                  <>
-                    <label>{field.label}</label>
-                    <textarea
-                      name={field.name}
-                      value={form[field.name] ?? ""}
-                      onChange={onChange}
-                      required={field.required}
-                      rows={4}
-                    />
-                  </>
-                ) : field.type === "select" ? (
-                  <>
-                    <label>{field.label}</label>
-                    <select
-                      name={field.name}
-                      value={form[field.name] ?? ""}
-                      onChange={onChange}
-                      required={field.required}
-                    >
-                      {field.options.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </>
-                ) : (
-                  <>
-                    <label>{field.label}</label>
-                    <input
-                      type={field.type || "text"}
-                      name={field.name}
-                      value={form[field.name] ?? ""}
-                      onChange={onChange}
-                      required={field.required}
-                    />
-                  </>
-                )}
+            <motion.form
+              className="modal form-grid"
+              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 360, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              onSubmit={onSubmit}
+            >
+              <h2>{editing ? `Edit ${config.title}` : `Add ${config.title}`}</h2>
+              {config.fields.map((field) => (
+                <div className="field" key={field.name}>
+                  {field.type === "checkbox" ? (
+                    <label>
+                      <input
+                        type="checkbox"
+                        name={field.name}
+                        checked={Boolean(form[field.name])}
+                        onChange={onChange}
+                      />{" "}
+                      {field.label}
+                    </label>
+                  ) : field.type === "textarea" ? (
+                    <>
+                      <label>{field.label}</label>
+                      <textarea
+                        name={field.name}
+                        value={form[field.name] ?? ""}
+                        onChange={onChange}
+                        required={field.required}
+                        rows={4}
+                        placeholder={field.placeholder}
+                      />
+                    </>
+                  ) : field.type === "select" ? (
+                    <>
+                      <label>{field.label}</label>
+                      <select
+                        name={field.name}
+                        value={form[field.name] ?? ""}
+                        onChange={onChange}
+                        required={field.required}
+                      >
+                        {field.options.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <>
+                      <label>{field.label}</label>
+                      <input
+                        type={field.type || "text"}
+                        name={field.name}
+                        value={form[field.name] ?? ""}
+                        onChange={onChange}
+                        required={field.required}
+                        placeholder={field.placeholder}
+                      />
+                    </>
+                  )}
+                </div>
+              ))}
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: "auto" }}
+                  disabled={busy}
+                >
+                  {busy ? "Saving…" : "Save"}
+                </button>
               </div>
-            ))}
-            <div className="modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" style={{ width: "auto" }} disabled={busy}>
-                {busy ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </form>
-        </div>
-      ) : null}
-    </>
+            </motion.form>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <ConfirmModal
+        open={Boolean(deleteId)}
+        title="Delete this item?"
+        message="This action cannot be undone. The record will be permanently removed."
+        confirmLabel="Delete"
+        danger
+        busy={deleting}
+        onCancel={() => setDeleteId(null)}
+        onConfirm={confirmDelete}
+      />
+    </PageMotion>
   );
 }
