@@ -17,6 +17,7 @@ const links = [
   { to: "/timeline", label: "Timeline", short: "TL" },
   { to: "/process-steps", label: "Process Steps", short: "PS" },
   { to: "/careers", label: "Careers", short: "CR" },
+  { to: "/founders", label: "Founders", short: "FD" },
   { to: "/messages", label: "Messages", short: "MG" },
 ];
 

@@ -8,8 +8,8 @@ export const resources = {
       { key: "sortOrder", label: "Order" },
     ],
     fields: [
-      { name: "title", label: "Title", required: true, placeholder: "e.g. Residential Construction" },
-      { name: "slug", label: "Slug", required: true, placeholder: "e.g. residential" },
+      { name: "title", label: "Title", required: true, placeholder: "e.g. Foundation Work" },
+      { name: "slug", label: "Slug", required: true, placeholder: "e.g. foundation-work" },
       { name: "summary", label: "Summary", type: "textarea", required: true, placeholder: "Short summary shown on cards" },
       { name: "details", label: "Details", type: "textarea", required: true, placeholder: "Full service description" },
       { name: "sortOrder", label: "Sort order", type: "number", placeholder: "0" },
@@ -168,5 +168,32 @@ export const resources = {
       { name: "isActive", label: "Active", type: "checkbox" },
     ],
     empty: { title: "", type: "Full-time", location: "", summary: "", sortOrder: 0, isActive: true },
+  },
+  founders: {
+    title: "Founders",
+    resource: "founders",
+    columns: [
+      { key: "name", label: "Name" },
+      { key: "designation", label: "Designation" },
+    ],
+    fields: [
+      { name: "name", label: "Name", required: true, placeholder: "e.g. Rajesh Kumar Sharma" },
+      { name: "designation", label: "Designation", required: true, placeholder: "e.g. Founder & Managing Director" },
+      { name: "image", label: "Image URL", required: true, placeholder: "https://example.com/founder.jpg" },
+      { name: "bio", label: "Bio", type: "textarea", required: true, placeholder: "Short biography of the founder" },
+      { name: "quote", label: "Quote", type: "textarea", placeholder: "Optional inspiring quote" },
+      { name: "sortOrder", label: "Sort order", type: "number", placeholder: "0" },
+      { name: "isActive", label: "Active", type: "checkbox" },
+    ],
+    empty: {
+      name: "",
+      designation: "",
+      image: "",
+      bio: "",
+      quote: "",
+      sortOrder: 0,
+      isActive: true,
+    },
+    imageKey: "image",
   },
 };

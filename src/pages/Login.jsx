@@ -5,7 +5,7 @@ import { useAuth } from "../auth";
 
 export default function Login() {
   const { admin, login } = useAuth();
-  const [username, setUsername] = useState("admin");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);

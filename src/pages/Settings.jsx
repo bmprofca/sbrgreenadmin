@@ -18,6 +18,7 @@ const empty = {
   aboutStory1: "",
   aboutStory2: "",
   careersIntro: "",
+  whatsappNumber: "",
 };
 
 export default function Settings() {
@@ -115,16 +116,25 @@ export default function Settings() {
             />
           </div>
           <div className="field">
-            <label>Email</label>
+            <label>WhatsApp number</label>
             <input
-              name="email"
-              type="email"
-              value={form.email}
+              name="whatsappNumber"
+              value={form.whatsappNumber || ""}
               onChange={onChange}
-              required
-              placeholder="info@sbrgreen.com"
+              placeholder="919876543210 (country code, no + or spaces)"
             />
           </div>
+        </div>
+        <div className="field">
+          <label>Email</label>
+          <input
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={onChange}
+            required
+            placeholder="info@sbrgreen.com"
+          />
         </div>
         <div className="field">
           <label>Address</label>
